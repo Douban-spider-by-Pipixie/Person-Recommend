@@ -4,20 +4,10 @@
 import pandas as pd
 import numpy as np
 
-# with open('./readtime.txt') as fr:
-#     for i, line in enumerate(fr.readlines()):
-#         if i > 0 :
-#             lineArr = line.strip().split()
-#             user_id , tag_id , time = lineArr
-#             user_id = int(user_id)
-#             tag_id = int(tag_id)
-#             time = float(time)
-
-
+#建立透视表
 df = pd.read_table('./readtime.txt', sep='\t')
 df = pd.pivot_table(df, index='user_id', columns=['tag_id'], values=['readtime'],
                     aggfunc=np.mean)
-
 readtimes = df.values
 n_user, n_tag = df.shape
 
@@ -47,19 +37,50 @@ def recommend(user_id, user_readtime, all_readtimes):
             if r > max_r:
                 max_r = r
                 recommend_user_id = i + 1
+    return recommend_user_id, max_r
 
-    return recommend_user_id
+#显示推荐用户喜欢的tag
+def show(recommend_user_id):
+    id=recommend_user_id-1
+    readtimeslist1 = np.round(readtimes[id].tolist(), 3)
+    # print(readtimeslist1)
+    readtimeslist2 = np.round(sorted(readtimes[id].tolist(), reverse=True), 3)
+    # print(readtimeslist2)
+    top = readtimeslist2[0]
+    # print(top)
+    for i in range(len(readtimeslist1)):
+        if (top == readtimeslist1[i]):
+            return i+1
 
+
+#将tag加入到列表中
+data = []
+f = open("./tag.txt", "r", encoding="utf-8")
+lines=f.readlines()
+for line in lines:
+    line_list=line.split('\t')
+    id=line_list[0]
+    name=line_list[1].replace('\n','')
+    data.append(name)
+f.close()
 
 recommend_user_ids = []
+matchings = []
 for k, user_readtime in enumerate(readtimes):
     user_id = k + 1
-    recommend_user_id = recommend(user_id, user_readtime, readtimes)
+    recommend_user_id, max_r = recommend(user_id, user_readtime, readtimes)
     recommend_user_ids.append(recommend_user_id)
+    matchings.append(max_r)
+    tagid=show(recommend_user_id)
+    tagname=data[tagid]
     print('user_id:', user_id, '  recommend_user_id:', recommend_user_id)
-cols = ['tag_{}_readtime'.format(i) for i in range(1, n_tag + 1)]
-df = pd.DataFrame(data=readtimes, columns=cols)
-df['user_id'] = range(1, n_user + 1)
-df['recommend_user_id'] = recommend_user_ids
-df.to_csv('推荐结果.csv', index=None)
+    print('该用户喜欢读',tagname,'类的书')
+
+# cols = ['tag_{}_readtime'.format(i) for i in range(1, n_tag + 1)]
+# df = pd.DataFrame(data=readtimes, columns=cols)
+# df['user_id'] = range(1, n_user + 1)
+# df['recommend_user_id'] = recommend_user_ids
+# df['matching'] = matchings
+# df.to_csv('推荐结果.csv', index=None)
+
 
